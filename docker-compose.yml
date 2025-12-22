@@ -1,0 +1,77 @@
+# EBEEF - Docker Compose for Development
+# Usage: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ebeef-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ebeef
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: ebeef-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - APP_MODE=demo
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ebeef
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-production-32chars}
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:3000
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
+      - PHONE_NUMBER_ID=${PHONE_NUMBER_ID:-}
+      - VERIFY_TOKEN=${VERIFY_TOKEN:-dev-verify-token}
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Client (optional - for full stack development)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: ebeef-client
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    ports:
+      - "5173:5173"
+    profiles:
+      - frontend
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: ebeef-network

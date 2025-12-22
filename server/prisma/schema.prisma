@@ -1,0 +1,245 @@
+// Prisma schema for EBEEF WhatsApp Copilot
+// Includes customers, products, purchases, promotions, and conversation history
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Operator model - authenticated users who manage conversations
+model Operator {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String    // Hashed with bcrypt
+  name          String
+  role          String    @default("operator") // operator, admin, supervisor
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Refresh tokens for this operator
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+}
+
+// Refresh tokens for JWT authentication
+model RefreshToken {
+  id          Int       @id @default(autoincrement())
+  token       String    @unique
+  operatorId  Int
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  operator    Operator  @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([operatorId])
+}
+
+// Customer model - linked by phone number from WhatsApp
+model Customer {
+  id                  Int        @id @default(autoincrement())
+  phone               String     @unique // WhatsApp phone number (primary identifier)
+  name                String?
+  email               String?
+  birthdate           DateTime?  // For CRM birthday campaigns
+  notes               String?    // Operator notes about this customer
+
+  // Billing address
+  billingStreet       String?
+  billingNumber       String?
+  billingComplement   String?
+  billingNeighborhood String?
+  billingCity         String?
+  billingState        String?
+  billingZipCode      String?
+
+  // Last delivery address
+  deliveryStreet       String?
+  deliveryNumber       String?
+  deliveryComplement   String?
+  deliveryNeighborhood String?
+  deliveryCity         String?
+  deliveryState        String?
+  deliveryZipCode      String?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  purchases   Purchase[]
+  messages    Message[]
+
+  @@index([phone])
+}
+
+// Product catalog
+model Product {
+  id          Int        @id @default(autoincrement())
+  sku         String     @unique
+  name        String
+  description String?
+  price       Decimal    @db.Decimal(10, 2)
+  category    String
+  subcategory String?
+  imageUrl    String?
+  stock       Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  purchases   PurchaseItem[]
+  promotions  PromotionProduct[]
+  relatedTo   ProductRelation[] @relation("RelatedFrom")
+  relatedFrom ProductRelation[] @relation("RelatedTo")
+
+  @@index([category])
+  @@index([sku])
+}
+
+// Product relationships for "frequently bought together" suggestions
+model ProductRelation {
+  id            Int      @id @default(autoincrement())
+  productFromId Int
+  productToId   Int
+  relationType  String   @default("related") // related, complement, upgrade, accessory
+  strength      Int      @default(1) // Higher = stronger relationship
+
+  productFrom   Product  @relation("RelatedFrom", fields: [productFromId], references: [id])
+  productTo     Product  @relation("RelatedTo", fields: [productToId], references: [id])
+
+  @@unique([productFromId, productToId])
+}
+
+// Purchase/Order header
+model Purchase {
+  id          Int           @id @default(autoincrement())
+  customerId  Int
+  orderNumber String        @unique
+  status      String        @default("completed") // pending, processing, completed, cancelled
+  totalAmount Decimal       @db.Decimal(10, 2)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  items       PurchaseItem[]
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// Purchase line items
+model PurchaseItem {
+  id          Int       @id @default(autoincrement())
+  purchaseId  Int
+  productId   Int
+  quantity    Int
+  unitPrice   Decimal   @db.Decimal(10, 2)
+  totalPrice  Decimal   @db.Decimal(10, 2)
+
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+// Promotions and offers
+model Promotion {
+  id            Int                @id @default(autoincrement())
+  code          String             @unique
+  name          String
+  description   String
+  discountType  String             // percentage, fixed, buyXgetY
+  discountValue Decimal            @db.Decimal(10, 2)
+  minPurchase   Decimal?           @db.Decimal(10, 2)
+  maxDiscount   Decimal?           @db.Decimal(10, 2)
+  validFrom     DateTime
+  validUntil    DateTime
+  isActive      Boolean            @default(true)
+  usageLimit    Int?
+  usageCount    Int                @default(0)
+  targetType    String             @default("all") // all, category, products, customers
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  products      PromotionProduct[]
+
+  @@index([validFrom, validUntil])
+  @@index([isActive])
+}
+
+// Many-to-many relation for promotion-specific products
+model PromotionProduct {
+  id          Int       @id @default(autoincrement())
+  promotionId Int
+  productId   Int
+
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@unique([promotionId, productId])
+}
+
+// Persisted conversation messages
+model Message {
+  id             Int           @id @default(autoincrement())
+  customerId     Int?
+  conversationId Int?
+  phoneNumber    String        // WhatsApp phone number
+  sender         String        // user, ai, operator, system
+  content        String
+  messageType    String        @default("text") // text, image, document, etc.
+  whatsappMsgId  String?       // WhatsApp message ID for deduplication
+  metadata       Json?         // Additional message metadata
+  timestamp      DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  conversation   Conversation? @relation("ConversationMessages", fields: [conversationId], references: [id])
+
+  @@index([phoneNumber])
+  @@index([customerId])
+  @@index([conversationId])
+  @@index([timestamp])
+  @@index([whatsappMsgId])
+}
+
+// Conversation state (replaces in-memory storage)
+model Conversation {
+  id          Int       @id @default(autoincrement())
+  phoneNumber String    @unique
+  mode        String    @default("AI") // AI, OPERATOR
+  assignedTo  String?   // Operator ID if assigned
+  status      String    @default("active") // active, resolved, waiting
+  lastMessageAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  messages    Message[] @relation("ConversationMessages")
+
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([lastMessageAt])
+}
+
+// Copilot suggestion templates
+model SuggestionTemplate {
+  id          Int       @id @default(autoincrement())
+  trigger     String    // Keyword or pattern that triggers this template
+  category    String    // greeting, product_inquiry, complaint, shipping, payment, etc.
+  template    String    // The suggestion text with placeholders like {customer_name}, {product_name}
+  priority    Int       @default(0) // Higher priority templates shown first
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([category])
+  @@index([trigger])
+}
