@@ -65,6 +65,11 @@ function OperatorDashboard() {
     if (!socket) return;
 
     socket.on('new_message', ({ from, message, mode, suggestions }) => {
+      // Skip operator messages - they're already added locally via optimistic update
+      if (message.sender === 'operator') {
+        return;
+      }
+
       setConversations((prev) => {
         const newConvs = { ...prev };
         if (!newConvs[from]) newConvs[from] = { mode, messages: [] };
@@ -187,9 +192,13 @@ function OperatorDashboard() {
     }
   };
 
-  const applySuggestion = (text) => {
+  const applySuggestion = useCallback((text, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     setInputText(text);
-  };
+  }, []);
 
   const saveCustomerNotes = async () => {
     if (!selectedPhone) return;
@@ -538,8 +547,9 @@ function OperatorDashboard() {
                       <h4 style={styles.sectionTitle}>Ações Rápidas</h4>
                       {copilotData.quickActions.map((action, idx) => (
                         <button
+                          type="button"
                           key={idx}
-                          onClick={() => applySuggestion(action.action)}
+                          onClick={(e) => applySuggestion(action.action, e)}
                           style={styles.quickAction}
                         >
                           {action.label}
@@ -556,7 +566,7 @@ function OperatorDashboard() {
                         <div
                           key={idx}
                           style={styles.suggestionCard}
-                          onClick={() => applySuggestion(suggestion.text)}
+                          onClick={(e) => applySuggestion(suggestion.text, e)}
                         >
                           <div style={styles.suggestionBadge}>
                             {suggestion.type === 'ai' ? '🤖 IA' : `📝 ${suggestion.category}`}
@@ -579,9 +589,11 @@ function OperatorDashboard() {
                           </div>
                           <div style={styles.recReason}>{rec.reason}</div>
                           <button
-                            onClick={() =>
+                            type="button"
+                            onClick={(e) =>
                               applySuggestion(
-                                `Eu recomendo nosso ${rec.name} por R$${rec.price}. ${rec.reason}`
+                                `Eu recomendo nosso ${rec.name} por R$${rec.price}. ${rec.reason}`,
+                                e
                               )
                             }
                             style={styles.useRecButton}
@@ -734,9 +746,9 @@ function OperatorDashboard() {
                           <span>R${parseFloat(copilotData.lastOrder.amount).toFixed(2)}</span>
                         </div>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
                             const itemsList = copilotData.lastOrder.items?.map(i => `${i.quantity}x ${i.productName}`).join(', ');
-                            applySuggestion(`Gostaria de repetir seu último pedido? ${itemsList} - Total: R$${parseFloat(copilotData.lastOrder.amount).toFixed(2)}`);
+                            applySuggestion(`Gostaria de repetir seu último pedido? ${itemsList} - Total: R$${parseFloat(copilotData.lastOrder.amount).toFixed(2)}`, e);
                           }}
                           style={styles.repeatOrderButton}
                         >
@@ -806,9 +818,10 @@ function OperatorDashboard() {
                         <div style={styles.productName}>{product.name}</div>
                         <div style={styles.productPrice}>R${product.price}</div>
                         <button
-                          onClick={() =>
+                          onClick={(e) =>
                             applySuggestion(
-                              `Nosso ${product.name} está disponível por R$${product.price}. Gostaria de fazer um pedido?`
+                              `Nosso ${product.name} está disponível por R$${product.price}. Gostaria de fazer um pedido?`,
+                              e
                             )
                           }
                           style={styles.insertButton}
@@ -840,9 +853,10 @@ function OperatorDashboard() {
                               : `R$${promo.discountValue} de desconto`}
                           </div>
                           <button
-                            onClick={() =>
+                            onClick={(e) =>
                               applySuggestion(
-                                `Ótima notícia! ${promo.description} Use o código ${promo.code} no checkout!`
+                                `Ótima notícia! ${promo.description} Use o código ${promo.code} no checkout!`,
+                                e
                               )
                             }
                             style={styles.sharePromoButton}
