@@ -637,7 +637,7 @@ Pedido Pronto → Cotação Lalamove (referência) → Notifica Grupo WhatsApp T
                                                          │
                                                     ┌────┴────┐
                                                     │         │
-                                              Aceito?    Timeout (15min)
+                                              Aceito?    Timeout (5min)
                                                     │         │
                                                     ▼         ▼
                                               Terceiro    Lalamove
