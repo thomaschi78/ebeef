@@ -21,54 +21,57 @@ O ebeef é um sistema integrado de gestão de pedidos para um negócio de delive
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   PLATAFORMA EBEEF                                       │
+│                                   PLATAFORMA EBEEF                                      │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                          │
 │  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                      MÓDULO AUTENTICAÇÃO E SESSÕES                                 │  │
-│  │     Login Vendedor │ Perfis (RBAC) │ Sessões WhatsApp │ Backup │ Auditoria         │  │
+│  │                                 MÓDULO ADMIN                                      │  |
+│  │     Controle Geral │ Regras de Negócio | Gestão | Módulo de analytics e métricas  |  |
+│  └───────────────────────────────────────────────────────────────────────────────────┘  │                                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                      MÓDULO AUTENTICAÇÃO E SESSÕES                                │  |
+│  │     Login Vendedor │ Perfis (RBAC) │ Sessões WhatsApp │ Backup │ Auditoria        │  |
 │  └───────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                          │
+│                                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                      BASE DE CONHECIMENTO (Content Production)                     │  │
-│  │     Receitas │ Dicas de Churrasco │ Harmonização │ Regras Cross-sell/Upsell        │  │
+│  │                      BASE DE CONHECIMENTO (Content Production)                    │  │
+│  │     Receitas │ Dicas de Churrasco │ Harmonização │ Regras Cross-sell/Upsell       │  │
 │  └──────────────────────────┬──────────────────────────────┬─────────────────────────┘  │
-│                             │                              │                             │
-│                             │ (alimenta sugestões          │ (regras de                  │
-│                             │  e dicas para cliente)       │  complementação)            │
-│                             ▼                              ▼                             │
+│                             │                              │                            │
+│                             │ (alimenta sugestões          │ (regras de                 │
+│                             │  e dicas para cliente)       │  complementação)           │
+│                             ▼                              ▼                            │
 │  ┌────────────────────┐  ┌────────────────────┐  ┌─────────────────┐  ┌──────────────┐  │
 │  │  MÓDULO CLIENTE    │  │  MÓDULO PEDIDO     │  │    MÓDULO       │  │   MÓDULO     │  │
 │  │     + CRM          │  │                    │  │   PAGAMENTO     │  │   ENTREGA    │  │
 │  │                    │  │                    │  │                 │  │              │  │
 │  │ - Chat IA/Vendedor │  │ - Carrinho         │  │ - Checkout      │  │ - Separação  │  │
 │  │ - Visão 360°       │─▶│ - Validação        │─▶│ - Pagamento     │─▶│ - Despacho   │  │
-│  │ - Segmentação      │  │ - Preços           │  │ - Confirmação   │  │ - Rastreio   │  │
-│  │ - LTV/Scoring      │  │ - Recompra         │  │                 │  │              │  │
+│  │ - Segmentação      │  │ - Preços           │  │ - Confirmação   │  │ - Agente IA  │  │
+│  │ - LTV/Scoring      │  │ - Recompra         │  │                 │  │ - Rastreio   │  │
 │  │ - Notas/Tags       │  │ - Sugestões (BC)   │  │                 │  │              │  │
 │  └─────────┬──────────┘  └─────────┬──────────┘  └────────┬────────┘  └──────┬───────┘  │
-│            │                       │                      │                  │           │
-│            └───────────────────────┴──────────────────────┴──────────────────┘           │
-│                                             │                                            │
-│                                             ▼                                            │
+│            │                       │                      │                  │          │
+│            └───────────────────────┴──────────────────────┴──────────────────┘          │
+│                                             │                                           │
+│                                             ▼                                           │
 │  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                       MÓDULO ANALYTICS E MÉTRICAS                                  │  │
-│  │     TAT │ Handover IA↔Vendedor │ Ticket Médio │ CSAT │ Dashboards │ Alertas        │  │
+│  │                       MÓDULO ANALYTICS E MÉTRICAS                                 │  │
+│  │     TAT │ Handover IA↔Vendedor │ Ticket Médio │ CSAT │ Dashboards │ Alertas       │  │
 │  └───────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                          │
+│                                                                                         │
 └──────────┬────────────────────┬───────────────────┬────────────────────┬────────────────┘
            │                    │                    │                    │
            ▼                    ▼                    ▼                    ▼
 ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
 │    WHATSAPP     │   │      BLING      │   │    PAGAR.ME     │   │  ENTREGADORES   │
-│  Business API   │   │      ERP        │   │    Gateway      │   │                 │
+│  Business API   │   │      ERP        │   │    Gateway      │   │  (Agente de IA) │
 ├─────────────────┤   ├─────────────────┤   ├─────────────────┤   ├─────────────────┤
 │ - Atendimento   │   │ - Produtos      │   │ - Transações    │   │ GRUPO WHATSAPP  │
 │ - Notificações  │   │ - Pedidos       │   │ - Clientes      │   │ (Terceiros)     │
-│ - Grupo Entrega │   │ - Estoque       │   │ - Assinaturas   │   │ ───────────────│
+│ - Grupo Entrega │   │ - Estoque       │   │ - Assinaturas   │   │ ─────────────── │
 │ - CSAT          │   │ - Notas Fiscais │   │ - Estornos      │   │ LALAMOVE        │
 └─────────────────┘   └─────────────────┘   └─────────────────┘   │ (Fallback)      │
-                                                                   └─────────────────┘
+                                                                  └─────────────────┘
 ```
 
 **Fluxo de Informação da Base de Conhecimento:**
